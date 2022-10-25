@@ -1,7 +1,9 @@
 use anyhow;
+use log::{error, info};
 use pulldown_cmark;
 use std::fs;
 use std::path::Path;
+use std::process;
 use walkdir::WalkDir;
 
 mod templates;
@@ -40,11 +42,15 @@ pub fn rebuild_site(content_dir: &str, build_dir: &str) -> Result<Vec<String>, a
 }
 
 fn build_dir_control(build_dir: &str) -> () {
+    env_logger::init();
     if Path::exists(Path::new(build_dir)) {
-        create_dir(build_dir);
-        info!("Creating build directory at {}", build_dir);
-    } else {
         info!("Build directory exists at {}", build_dir);
+    } else {
+        fs::create_dir(build_dir).unwrap_or_else(|e| {
+            error!("An error occured creating this directory: {}", e);
+            process::exit(1)
+        });
+        info!("Creating build directory at {}", build_dir);
     }
 }
 
@@ -55,8 +61,8 @@ mod test {
     #[test]
     fn rebuild_basic_test() {
         assert_eq!(
-            rebuild_site("test_content", "test_build"),
-            vec!["test_content/blog.md", "test_content/home.md"]
+            rebuild_site("test_content", "test_build").unwrap(),
+            vec!["test_build/blog.html", "test_build/home.html"]
         )
     }
 }
