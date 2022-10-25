@@ -1,7 +1,7 @@
 mod templates;
 use oxysite::rebuild_site;
 
-const CONTENT_DIR: &str = "content";
+const CONTENT_DIR: &str = "test_content";
 const PUBLIC_DIR: &str = "public";
 
 fn main() -> Result<(), anyhow::Error> {
