@@ -32,6 +32,9 @@ pub fn rebuild_site(content_dir: &str, build_dir: &str) -> Result<Vec<String>, a
         html.push_str(templates::FOOTER);
 
         let html_file = file.replace(content_dir, build_dir).replace(".md", ".html");
+        let folder = Path::new(&html_file).parent().unwrap();
+        let _ = fs::create_dir_all(folder);
+        fs::write(&html_file, html)?;
 
         html_files.push(html_file);
     }
