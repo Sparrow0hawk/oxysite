@@ -8,9 +8,24 @@ use walkdir::WalkDir;
 
 mod templates;
 
-pub fn rebuild_site(content_dir: &str, build_dir: &str) -> Result<Vec<String>, anyhow::Error> {
-    let _ = build_dir_control(build_dir);
-    let mut content_files: Vec<String> = WalkDir::new(content_dir)
+pub struct Site {
+    pub content_dir: String,
+    pub build_dir: String,
+}
+
+impl Site {
+    pub fn new(content_dir: String, build_dir: String) -> Result<Site, &'static str> {
+        Ok(Site {
+            content_dir,
+            build_dir,
+        })
+    }
+}
+pub fn rebuild_site(site: Site) -> Result<Vec<String>, anyhow::Error> {
+    let site: Site = site;
+
+    let _ = build_dir_control(&site.build_dir);
+    let mut content_files: Vec<String> = WalkDir::new(&site.content_dir)
         .into_iter()
         .filter_map(|x| x.ok())
         .filter(|file| file.path().display().to_string().ends_with(".md"))
@@ -61,6 +76,20 @@ fn build_dir_control(build_dir: &str) -> () {
 
 mod test {
     use super::*;
+
+    #[test]
+    fn test_build_md() {
+        let file = "test_content/home.md";
+        let test_site = Site {
+            content_dir: String::from("test_content"),
+            build_dir: String::from("public"),
+        };
+
+        let _ = fs::remove_dir_all("public");
+        let html_file = build_md(file, &test_site).unwrap();
+
+        assert_eq!("public/home.html", html_file)
+    }
     #[test]
     fn rebuild_basic_test() {
         assert_eq!(
