@@ -1,11 +1,16 @@
 mod templates;
-use oxysite::rebuild_site;
-
-const CONTENT_DIR: &str = "test_content";
-const PUBLIC_DIR: &str = "public";
+use oxysite::{rebuild_site, Site};
 
 fn main() -> Result<(), anyhow::Error> {
-    rebuild_site(CONTENT_DIR, PUBLIC_DIR);
+    let content: String = String::from("test_content");
+    let public: String = String::from("public");
+
+    let config = Site {
+        content_dir: content,
+        build_dir: public,
+    };
+
+    rebuild_site(config);
 
     // rebuild_site(&str, &str)
     // delete public dir
