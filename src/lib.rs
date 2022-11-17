@@ -97,6 +97,7 @@ fn build_page(markdown_file: &str) -> String {
 
 mod test {
     use super::*;
+    use assert_str::assert_str_trim_eq;
 
     #[test]
     fn test_build_md() {
@@ -113,21 +114,25 @@ mod test {
     }
 
     #[test]
-    fn test_build_page() {
-        let md = "# Blog page\n- item 1\n- item 2\n- item 3".to_string();
+    fn test_build_md() {
+        let md = "# Blog page\n- item 1\n- item 2\n- item 3";
 
-        let output = build_page(&md);
+        let output = build_md(&md).unwrap();
 
-        assert_eq!(
+        assert_str_trim_eq!(
             // assert returned string matches string
             output,
             r#"<!DOCTYPE html>
             <html lang="en">
-            
                 <head>
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width", initial-scale=1">
                 </head>
+                <body>
+                <nav>
+                    <a href="/">Home</a>
+                </nav>
+                <br />
                 <h1>Blog page</h1>
                 <ul>
                 <li>item 1</li>
