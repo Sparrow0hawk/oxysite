@@ -36,10 +36,10 @@ pub fn rebuild_site(site: Site) -> Result<Vec<String>, anyhow::Error> {
     let mut html_files = Vec::with_capacity(content_files.len());
 
     for file in &content_files {
-        let html_name;
+        let file_contents = fs::read_to_string(file)?;
 
-        html_name = build_md(&file, &config).unwrap_or_else(|e| {
-            error!("An error occured building html from markdown {}", e);
+        let html = build_md(&file_contents).unwrap_or_else(|e| {
+            error!("An error occured building html from markdown: {}", e);
             process::exit(1)
         });
 
@@ -64,13 +64,12 @@ fn build_dir_control(build_dir: &str) -> () {
     }
 }
 
-fn build_md(file: &str, site: &Site) -> Result<String, std::io::Error> {
+fn build_md(file: &str) -> Result<String, anyhow::Error> {
     // build html files from markdown files
     // uses pulldown_cmark crate to do conversion
     // creates a
     let mut html = templates::HEADER.to_owned();
-    let markdown_file = fs::read_to_string(&file)?;
-    let parser = pulldown_cmark::Parser::new_ext(&markdown_file, pulldown_cmark::Options::all());
+    let parser = pulldown_cmark::Parser::new_ext(&file, pulldown_cmark::Options::all());
     let mut body = String::new();
 
     pulldown_cmark::html::push_html(&mut body, parser);
@@ -78,6 +77,8 @@ fn build_md(file: &str, site: &Site) -> Result<String, std::io::Error> {
     html.push_str(templates::render_body(&body).as_str());
     html.push_str(templates::FOOTER);
 
+    Ok(html)
+}
     let html_file = file
         .replace(&site.content_dir, &site.build_dir)
         .replace(".md", ".html");
