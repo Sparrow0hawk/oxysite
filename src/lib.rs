@@ -36,11 +36,16 @@ pub fn rebuild_site(site: Site) -> Result<Vec<String>, anyhow::Error> {
     let mut html_files = Vec::with_capacity(content_files.len());
 
     for file in &content_files {
-        let html_name;
+        let file_contents = fs::read_to_string(file)?;
 
-        html_name = build_md(&file, &config).unwrap_or_else(|e| {
-            error!("An error occured building html from markdown {}", e);
+        let html = build_md(&file_contents).unwrap_or_else(|e| {
+            error!("An error occured building html from markdown: {}", e);
             process::exit(1)
+        });
+
+        let html_name = write_html(&file, html, &config).unwrap_or_else(|e| {
+            error!("An error occured writing html files to disk: {}", e);
+            process::exit(1);
         });
 
         html_files.push(html_name);
@@ -64,13 +69,12 @@ fn build_dir_control(build_dir: &str) -> () {
     }
 }
 
-fn build_md(file: &str, site: &Site) -> Result<String, std::io::Error> {
+fn build_md(file: &str) -> Result<String, anyhow::Error> {
     // build html files from markdown files
     // uses pulldown_cmark crate to do conversion
     // creates a
     let mut html = templates::HEADER.to_owned();
-    let markdown_file = fs::read_to_string(&file)?;
-    let parser = pulldown_cmark::Parser::new_ext(&markdown_file, pulldown_cmark::Options::all());
+    let parser = pulldown_cmark::Parser::new_ext(&file, pulldown_cmark::Options::all());
     let mut body = String::new();
 
     pulldown_cmark::html::push_html(&mut body, parser);
@@ -78,6 +82,10 @@ fn build_md(file: &str, site: &Site) -> Result<String, std::io::Error> {
     html.push_str(templates::render_body(&body).as_str());
     html.push_str(templates::FOOTER);
 
+    Ok(html)
+}
+
+fn write_html(file: &str, html: String, site: &Site) -> Result<String, std::io::Error> {
     let html_file = file
         .replace(&site.content_dir, &site.build_dir)
         .replace(".md", ".html");
@@ -88,45 +96,59 @@ fn build_md(file: &str, site: &Site) -> Result<String, std::io::Error> {
     Ok(html_file)
 }
 
-fn build_page(markdown_file: &str) -> String {
-    markdown_file.to_string()
-}
-
 #[cfg(test)]
 
 mod test {
     use super::*;
+    use assert_str::assert_str_trim_eq;
 
     #[test]
-    fn test_build_md() {
+    fn test_write_html() {
         let file = "test_content/home.md";
         let test_site = Site {
             content_dir: String::from("test_content"),
             build_dir: String::from("public"),
         };
 
+        let test_html = r#"<!DOCTYPE html>
+        <html lang="en">
+        
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width", initial-scale=1">
+            </head>
+            <h1>Hello world!</h1>
+            </body>
+            </html>
+        "#
+        .to_string();
+
         let _ = fs::remove_dir_all("public");
-        let html_file = build_md(file, &test_site).unwrap();
+        let html_file = write_html(file, test_html, &test_site).unwrap();
 
         assert_eq!("public/home.html", html_file)
     }
 
     #[test]
-    fn test_build_page() {
-        let md = "# Blog page\n- item 1\n- item 2\n- item 3".to_string();
+    fn test_build_md() {
+        let md = "# Blog page\n- item 1\n- item 2\n- item 3";
 
-        let output = build_page(&md);
+        let output = build_md(&md).unwrap();
 
-        assert_eq!(
+        assert_str_trim_eq!(
             // assert returned string matches string
             output,
             r#"<!DOCTYPE html>
             <html lang="en">
-            
                 <head>
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width", initial-scale=1">
                 </head>
+                <body>
+                <nav>
+                    <a href="/">Home</a>
+                </nav>
+                <br />
                 <h1>Blog page</h1>
                 <ul>
                 <li>item 1</li>
@@ -149,9 +171,14 @@ mod test {
 
         let _ = fs::remove_dir_all("public");
 
+        let mut result = rebuild_site(test_site).unwrap();
+
+        // sort here to ensure consistency for the assertion below
+        result.sort();
+
         assert_eq!(
             // this should check fiel system for files
-            rebuild_site(test_site).unwrap(),
+            result,
             vec!["public/blog.html", "public/home.html"]
         )
     }
