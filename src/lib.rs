@@ -171,9 +171,14 @@ mod test {
 
         let _ = fs::remove_dir_all("public");
 
+        let mut result = rebuild_site(test_site).unwrap();
+
+        // sort here to ensure consistency for the assertion below
+        result.sort();
+
         assert_eq!(
             // this should check fiel system for files
-            rebuild_site(test_site).unwrap(),
+            result,
             vec!["public/blog.html", "public/home.html"]
         )
     }
