@@ -1,16 +1,41 @@
 mod templates;
+use clap::{Parser, Subcommand};
 use oxysite::{rebuild_site, Site};
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+#[command(propagate_version = true)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Build site
+    Build {
+        /// Directory containing markdown files
+        #[arg(short = 'c', long)]
+        content: Option<String>,
+        /// Directory to write html files
+        #[arg(short = 'p', long)]
+        public: Option<String>,
+    },
+}
+
 fn main() -> Result<(), anyhow::Error> {
-    let content: String = String::from("test_content");
-    let public: String = String::from("public");
+    let cli = Cli::parse();
 
-    let config = Site {
-        content_dir: content,
-        build_dir: public,
-    };
+    match cli.command {
+        Commands::Build { content, public } => {
+            let config = Site {
+                content_dir: content.unwrap(),
+                build_dir: public.unwrap(),
+            };
 
-    rebuild_site(config);
+            let _ = rebuild_site(config);
+        }
+    }
 
     // rebuild_site(&str, &str)
     // delete public dir
