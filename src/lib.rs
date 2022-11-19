@@ -106,7 +106,7 @@ mod test {
     fn test_write_html() {
         let file = "test_content/home.md";
         let test_site = Site {
-            content_dir: String::from("test_content"),
+            content_dir: String::from("test_content/"),
             build_dir: String::from("public"),
         };
 
