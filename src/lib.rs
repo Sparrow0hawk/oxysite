@@ -2,7 +2,7 @@ use anyhow;
 use log::{error, info};
 use pulldown_cmark;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process;
 use walkdir::WalkDir;
 
@@ -48,7 +48,7 @@ pub fn rebuild_site(site: Site) -> Result<Vec<String>, anyhow::Error> {
             process::exit(1);
         });
 
-        html_files.push(html_name);
+        html_files.push(html_name.to_str().unwrap().to_string());
     }
 
     println!("{:?}", html_files);
@@ -85,10 +85,11 @@ fn build_md(file: &str) -> Result<String, anyhow::Error> {
     Ok(html)
 }
 
-fn write_html(file: &str, html: String, site: &Site) -> Result<String, std::io::Error> {
-    let html_file = file
-        .replace(&site.content_dir, &site.build_dir)
-        .replace(".md", ".html");
+fn write_html(file: &str, html: String, site: &Site) -> Result<PathBuf, std::io::Error> {
+    let html_file = Path::new(file).file_name().unwrap();
+
+    let mut html_file = Path::new(&site.build_dir).join(html_file);
+    html_file.set_extension("html");
     let folder = Path::new(&html_file).parent().unwrap();
     let _ = fs::create_dir_all(folder);
     fs::write(&html_file, html)?;
@@ -126,7 +127,34 @@ mod test {
         let _ = fs::remove_dir_all("public");
         let html_file = write_html(file, test_html, &test_site).unwrap();
 
-        assert_eq!("public/home.html", html_file)
+        assert_eq!(PathBuf::from("public/home.html"), html_file)
+    }
+
+    #[test]
+    fn test_write_html_no_trailing_slash() {
+        let file = "test_content/home.md";
+        let test_site = Site {
+            content_dir: String::from("test_content"),
+            build_dir: String::from("public"),
+        };
+
+        let test_html = r#"<!DOCTYPE html>
+        <html lang="en">
+        
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width", initial-scale=1">
+            </head>
+            <h1>Hello world!</h1>
+            </body>
+            </html>
+        "#
+        .to_string();
+
+        let _ = fs::remove_dir_all("public");
+        let html_file = write_html(file, test_html, &test_site).unwrap();
+
+        assert_eq!(PathBuf::from("public/home.html"), html_file)
     }
 
     #[test]
