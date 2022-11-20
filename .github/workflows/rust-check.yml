@@ -1,4 +1,4 @@
-name: Check cargo build and test work
+name: Rust checks
 
 on:
   push:
